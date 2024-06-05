@@ -73,7 +73,9 @@ resource "aws_route_table_association" "ofl-public-subnet-asscioations" {
 #                 Private Subnets Creation                      ##
 #################################################################
 resource "aws_subnet" "ofl-private-subnet" {
-  count                   = var.enable_private ? length(var.azs) : 0
+  #count explained --> #if var.enable_private is true then run the rest of the block, 
+  #but if length(var.azs) is false then its going to say null and void
+  count                   = var.enable_private ? length(var.azs) : 0  
   vpc_id                  = aws_vpc.ofl-vpc.id
   cidr_block              = var.private-subnets[count.index]
   availability_zone       = var.azs[count.index]
@@ -90,7 +92,8 @@ resource "aws_subnet" "ofl-private-subnet" {
 ##                         EIP Creation                         ##
 ##################################################################
 resource "aws_eip" "ofl-eip" {
-count                   = var.enable_private ? 1 : 0
+#count explained --> If enable_private is true then create an ofl-eip
+count                   = var.enable_private ? 1 : 0 
   domain = "vpc"
   tags = merge(
     { Name    = title("${var.name}-eip}") },
@@ -102,7 +105,8 @@ count                   = var.enable_private ? 1 : 0
 ##                    NAT Gateway Creation                      ##
 ##################################################################
 resource "aws_nat_gateway" "ofl-nat" {
-count = var.enable_private ? 1 : 0
+ #count explained --> If enable_private is true then create a NAT GW
+count = var.enable_private ? 1 : 0   
   allocation_id = aws_eip.ofl-eip[0].id
   subnet_id     = aws_subnet.ofl-private-subnet[0].id
   tags = merge(
@@ -116,7 +120,8 @@ count = var.enable_private ? 1 : 0
 ##                 Private Route Table                           ##
 ##################################################################
 resource "aws_route_table" "ofl-private-route-table" {
-  count                   = var.enable_private ? 1 : 0
+  #count explained --> If enable_private is true then create a Private RT
+  count                   = var.enable_private ? 1 : 0   
   vpc_id = aws_vpc.ofl-vpc.id
   route {
     cidr_block = var.internet-cidr
@@ -132,6 +137,8 @@ resource "aws_route_table" "ofl-private-route-table" {
 ##    Private Route Table Asscioation with Private Subnets      ##
 ##################################################################
 resource "aws_route_table_association" "ofl-private-subnet-asscioations" {
+  ##count explained --> If enable_private is true then create a Route Table Association,
+  #if length(var.azs) is false then make it null and void
    count                   = var.enable_private ? length(var.azs) : 0
   subnet_id      = element(aws_subnet.ofl-private-subnet[*].id, count.index)
   route_table_id = aws_route_table.ofl-private-route-table[0].id
