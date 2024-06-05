@@ -1,7 +1,7 @@
 ##################################################################
 ##                       VPC Creation                           ##
 ##################################################################
-resource "aws_vpc" "ctops-vpc" {
+resource "aws_vpc" "ofl-vpc" {
   cidr_block           = var.cidr_block
   instance_tenancy     = var.instance_tenancy
   enable_dns_hostnames = var.enable_dns_hostnames
@@ -16,9 +16,9 @@ resource "aws_vpc" "ctops-vpc" {
 #################################################################
 #                 Public Subnets Creation                      ##
 #################################################################
-resource "aws_subnet" "ctops-public-subnet" {
+resource "aws_subnet" "ofl-public-subnet" {
   count                   = length(var.azs)
-  vpc_id                  = aws_vpc.ctops-vpc.id
+  vpc_id                  = aws_vpc.ofl-vpc.id
   cidr_block              = var.public_subnets[count.index]
   availability_zone       = var.azs[count.index]
   map_public_ip_on_launch = true
@@ -32,49 +32,49 @@ resource "aws_subnet" "ctops-public-subnet" {
 ################################################################
 ##                      IGW Creation                           ##
 ################################################################
-resource "aws_internet_gateway" "ctops-igw" {
-  vpc_id = aws_vpc.ctops-vpc.id
+resource "aws_internet_gateway" "ofl-igw" {
+  vpc_id = aws_vpc.ofl-vpc.id
   tags = merge(
     { "Name" = var.name },
     var.tags,
     var.vpc_tags,
   )
-  depends_on = [aws_vpc.ctops-vpc]
+  depends_on = [aws_vpc.ofl-vpc]
 }
 
 #################################################################
 #                 Public Route Table                           ##
 #################################################################
-resource "aws_route_table" "ctops-public-route-table" {
-  vpc_id = aws_vpc.ctops-vpc.id
+resource "aws_route_table" "ofl-public-route-table" {
+  vpc_id = aws_vpc.ofl-vpc.id
   route {
     cidr_block = var.internet-cidr
-    gateway_id = aws_internet_gateway.ctops-igw.id
+    gateway_id = aws_internet_gateway.ofl-igw.id
   }
   tags = merge(
     { "Name" = title("${var.name}-Public Route Table") },
     var.tags,
     var.vpc_tags,
   )
-  depends_on = [aws_vpc.ctops-vpc, aws_subnet.ctops-public-subnet]
+  depends_on = [aws_vpc.ofl-vpc, aws_subnet.ofl-public-subnet]
 }
 
 #################################################################
 #    Public Route Table Asscioation with Public Subnets        ##
 #################################################################
-resource "aws_route_table_association" "ctops-public-subnet-asscioations" {
+resource "aws_route_table_association" "ofl-public-subnet-asscioations" {
   count          = length(var.azs)
-  subnet_id      = element(aws_subnet.ctops-public-subnet[*].id, count.index)
-  route_table_id = aws_route_table.ctops-public-route-table.id
+  subnet_id      = element(aws_subnet.ofl-public-subnet[*].id, count.index)
+  route_table_id = aws_route_table.ofl-public-route-table.id
 }
 
 
 #################################################################
 #                 Private Subnets Creation                      ##
 #################################################################
-resource "aws_subnet" "ctops-private-subnet" {
+resource "aws_subnet" "ofl-private-subnet" {
   count                   = var.enable_private ? length(var.azs) : 0
-  vpc_id                  = aws_vpc.ctops-vpc.id
+  vpc_id                  = aws_vpc.ofl-vpc.id
   cidr_block              = var.private-subnet[count.index]
   availability_zone       = var.azs[count.index]
   map_public_ip_on_launch = false
@@ -89,7 +89,7 @@ resource "aws_subnet" "ctops-private-subnet" {
 ##################################################################
 ##                         EIP Creation                         ##
 ##################################################################
-resource "aws_eip" "ctops-eip" {
+resource "aws_eip" "ofl-eip" {
 count                   = var.enable_private ? 1 : 0
   domain = "vpc"
   tags = merge(
@@ -101,26 +101,26 @@ count                   = var.enable_private ? 1 : 0
 ##################################################################
 ##                    NAT Gateway Creation                      ##
 ##################################################################
-resource "aws_nat_gateway" "ctops-nat" {
+resource "aws_nat_gateway" "ofl-nat" {
 count = var.enable_private ? 1 : 0
-  allocation_id = aws_eip.ctops-eip[0].id
-  subnet_id     = aws_subnet.ctops-private-subnet[0].id
+  allocation_id = aws_eip.ofl-eip[0].id
+  subnet_id     = aws_subnet.ofl-private-subnet[0].id
   tags = merge(
     { Name    = title("${var.name}-Nat}") },
     var.tags,
     var.vpc_tags,
   )
-  depends_on = [aws_internet_gateway.ctops-igw]
+  depends_on = [aws_internet_gateway.ofl-igw]
 }
 ##################################################################
 ##                 Private Route Table                           ##
 ##################################################################
-resource "aws_route_table" "ctops-private-route-table" {
+resource "aws_route_table" "ofl-private-route-table" {
   count                   = var.enable_private ? 1 : 0
-  vpc_id = aws_vpc.ctops-vpc.id
+  vpc_id = aws_vpc.ofl-vpc.id
   route {
     cidr_block = var.internet-cidr
-    gateway_id = aws_nat_gateway.ctops-nat[0].id
+    gateway_id = aws_nat_gateway.ofl-nat[0].id
   }
   tags = merge(
     { "Name" = title("${var.name}-Private Route Table") },
@@ -131,8 +131,8 @@ resource "aws_route_table" "ctops-private-route-table" {
 ##################################################################
 ##    Private Route Table Asscioation with Private Subnets      ##
 ##################################################################
-resource "aws_route_table_association" "ctops-private-subnet-asscioations" {
+resource "aws_route_table_association" "ofl-private-subnet-asscioations" {
    count                   = var.enable_private ? length(var.azs) : 0
-  subnet_id      = element(aws_subnet.ctops-private-subnet[*].id, count.index)
-  route_table_id = aws_route_table.ctops-private-route-table[0].id
+  subnet_id      = element(aws_subnet.ofl-private-subnet[*].id, count.index)
+  route_table_id = aws_route_table.ofl-private-route-table[0].id
 }
