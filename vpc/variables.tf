@@ -60,7 +60,7 @@ variable "internet-cidr" {
     default = "0.0.0.0/0"
 }
 
-variable "private-subnet" {
+variable "private-subnets" {
    description = "A list of private subnets inside the VPC"
   type        = list(string)
   default     = []
