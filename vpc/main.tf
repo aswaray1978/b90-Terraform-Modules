@@ -75,7 +75,7 @@ resource "aws_route_table_association" "ofl-public-subnet-asscioations" {
 resource "aws_subnet" "ofl-private-subnet" {
   count                   = var.enable_private ? length(var.azs) : 0
   vpc_id                  = aws_vpc.ofl-vpc.id
-  cidr_block              = var.private-subnet[count.index]
+  cidr_block              = var.private-subnets[count.index]
   availability_zone       = var.azs[count.index]
   map_public_ip_on_launch = false
   tags = merge(
